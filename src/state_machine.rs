@@ -67,6 +67,8 @@ pub async fn animation_state_task(
                 State::PanShake => {
                     info!("LED PanShake");
                     pan_shake_animation(level, &mut pwm0, &mut pwm1).await;
+                    // Wait for welcome animation finish
+                    em_time::Timer::after(em_time::Duration::from_millis(500)).await;
                 }
                 State::LevelDown => {
                     info!("LED Level Down to {}", level);
