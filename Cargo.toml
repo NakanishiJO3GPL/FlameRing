@@ -1,0 +1,69 @@
+[package]
+edition = "2024"
+name = "flame_ring_rp"
+version = "0.1.0"
+license = "MIT OR Apache-2.0"
+
+[dependencies]
+embassy-embedded-hal = { version = "0.5.0", features = ["defmt"] }
+embassy-sync = { version = "0.7.2", features = ["defmt"] }
+embassy-executor = { version = "0.9.0", features = ["arch-cortex-m", "executor-thread", "executor-interrupt", "defmt"] }
+embassy-time = { version = "0.5.0", features = ["defmt", "defmt-timestamp-uptime"] }
+embassy-rp = { version = "0.8.0", features = ["defmt", "unstable-pac", "time-driver", "critical-section-impl", "rp235xa", "binary-info"] }
+embassy-futures = { version = "0.1.2" }
+
+defmt = "1.0.1"
+defmt-rtt = "1.0.0"
+fixed = "1.23.1"
+fixed-macro = "1.2"
+
+serde = { version = "1.0.203", default-features = false, features = ["derive"] }
+serde-json-core = "0.5.1"
+
+cortex-m = { version = "0.7.6", features = ["inline-asm"] }
+cortex-m-rt = "0.7.0"
+micromath = "2.0"
+critical-section = "1.1"
+panic-probe = { version = "1.0.0", features = ["print-defmt"] }
+
+# cargo build/run
+[profile.dev]
+debug = 2
+debug-assertions = true
+opt-level = 2
+overflow-checks = true
+
+# cargo build/run --release
+[profile.release]
+debug = 2
+debug-assertions = false
+lto = 'fat'
+opt-level = 2
+overflow-checks = false
+
+# do not optimize proc-macro crates = faster builds from scratch
+[profile.dev.build-override]
+debug = false
+debug-assertions = false
+overflow-checks = false
+opt-level = 0
+
+[profile.release.build-override]
+debug = false
+debug-assertions = false
+overflow-checks = false
+opt-level = 0
+
+# cargo test
+[profile.test]
+debug = 2
+debug-assertions = true
+opt-level = 2
+overflow-checks = true
+
+# cargo test --release
+[profile.bench]
+debug = 2
+debug-assertions = false
+lto = 'fat'
+opt-level = 3
