@@ -46,7 +46,7 @@ pub async fn animation_state_task(
         if state == State::Nikomi {
             // In Nikomi state, keep LED on
             nikomi_animation(time_stamp, &mut pwm0, &mut pwm1);
-            time_stamp += 1;
+            time_stamp = time_stamp.wrapping_add(1);
         } else if prev_state != state {
             prev_state = state;
             match state {
