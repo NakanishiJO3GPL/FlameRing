@@ -3,6 +3,11 @@
 #![no_std]
 #![no_main]
 
+mod button;
+mod proximity;
+mod state_machine;
+mod animation;
+
 use core::time as core_time;
 use defmt::info;
 use embassy_executor::Spawner;
@@ -17,10 +22,6 @@ use embassy_rp::{
 use embassy_sync::blocking_mutex::raw::CriticalSectionRawMutex;
 use embassy_sync::channel::Channel;
 use {defmt_rtt as _, panic_probe as _};
-
-mod button;
-mod proximity;
-mod state_machine;
 
 bind_interrupts!(struct Irqs {
     PIO0_IRQ_0 => pio::InterruptHandler<PIO0>;
