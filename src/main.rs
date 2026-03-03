@@ -3,10 +3,10 @@
 #![no_std]
 #![no_main]
 
+mod animation;
 mod button;
 mod proximity;
 mod state_machine;
-mod animation;
 
 use core::time as core_time;
 use defmt::info;
@@ -32,6 +32,7 @@ bind_interrupts!(struct Irqs {
 pub static CHANNEL: Channel<CriticalSectionRawMutex, Event, 4> = Channel::new();
 
 // Message
+#[derive(Copy, Clone, PartialEq, Eq, Debug, defmt::Format)]
 pub enum ButtonKind {
     Nikomi,
     Weak,
@@ -39,9 +40,12 @@ pub enum ButtonKind {
     Power,
 }
 
+#[derive(Copy, Clone, PartialEq, Eq, Debug, defmt::Format)]
 pub enum Event {
     ProximityChanged(u16),
     ProximityCurrent(u16),
+    ProximityPanOn,
+    ProximityPanOff,
     ButtonPressed(ButtonKind),
 }
 
@@ -72,9 +76,9 @@ async fn main(spawner: Spawner) {
         Config::default(),
     );
 
-    let button_nikomi = Input::new(p.PIN_6, Pull::Up); // Nikomi
+    let button_nikomi = Input::new(p.PIN_8, Pull::Up); // Nikomi
     let button_weak = Input::new(p.PIN_7, Pull::Up); // Weak
-    let button_strong = Input::new(p.PIN_8, Pull::Up); // Strong
+    let button_strong = Input::new(p.PIN_6, Pull::Up); // Strong
     let button_power = Input::new(p.PIN_9, Pull::Up); // Power
 
     // Spawn tasks

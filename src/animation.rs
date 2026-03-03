@@ -7,8 +7,10 @@ use embassy_rp::{peripherals::PIO0, pio_programs::pwm::PioPwm};
 use embassy_time as em_time;
 use micromath::F32Ext;
 
-const NIKOMI_ANIMATION_STEPS: f32 = 75.0;
-const MAX_DUTY_MICRO: u64 = 2_500;
+const NIKOMI_ANIMATION_STEPS: f32 = 50.0;
+// Max duty cycle in microseconds (for 100% brightness)
+// Note: 100% duty is 10_000 microseconds
+const MAX_DUTY_MICRO: u64 = 7_000;
 
 pub struct AnimationEngine {
     pwm0: PioPwm<'static, PIO0, 0>,

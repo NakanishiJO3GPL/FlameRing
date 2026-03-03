@@ -7,7 +7,7 @@ use embassy_time as em_time;
 
 use crate::{ButtonKind, CHANNEL, Event, animation::AnimationEngine};
 
-#[derive(Copy, Clone, PartialEq, Eq, Debug)]
+#[derive(Copy, Clone, PartialEq, Eq, Debug, defmt::Format)]
 enum State {
     PowerOff,
     Standby,
@@ -23,8 +23,7 @@ impl Default for State {
     }
 }
 
-const PAN_ON_TH: u16 = 1500;
-const PAN_OFF_TH: u16 = 3500;
+const SAMPLING_INTERVAL_MS: u64 = 10;
 
 #[embassy_executor::task]
 pub async fn animation_state_task(pwm0: PioPwm<'static, PIO0, 0>, pwm1: PioPwm<'static, PIO0, 1>) {
@@ -72,36 +71,41 @@ pub async fn animation_state_task(pwm0: PioPwm<'static, PIO0, 0>, pwm1: PioPwm<'
             }
         }
 
-        em_time::Timer::after(em_time::Duration::from_millis(10)).await;
+        em_time::Timer::after(em_time::Duration::from_millis(SAMPLING_INTERVAL_MS)).await;
     }
 }
 
 fn update_state(state: State, level: &mut u8) -> State {
+    info!("Current State: {:?}", state);
     let event = CHANNEL.try_receive();
     match (state, event) {
         (State::PowerOff, Ok(Event::ButtonPressed(ButtonKind::Power))) => State::Standby,
         (State::PowerOff, _) => State::PowerOff,
 
         (State::Standby, Ok(Event::ButtonPressed(ButtonKind::Power))) => State::PowerOff,
-        (State::Standby, Ok(Event::ProximityCurrent(p))) => check_pan_on(p),
-        (State::Standby, Ok(Event::ProximityChanged(p))) => check_pan_on(p),
+        (State::Standby, Ok(Event::ProximityPanOn)) => State::PowerOn,
+        (State::Standby, Ok(Event::ProximityPanOff)) => State::Standby,
         (State::Standby, _) => State::Standby,
 
         (State::PowerOn, Ok(Event::ButtonPressed(ButtonKind::Power))) => State::PowerOff,
         (State::PowerOn, Ok(Event::ButtonPressed(ButtonKind::Weak))) => level_down(level),
         (State::PowerOn, Ok(Event::ButtonPressed(ButtonKind::Strong))) => level_up(level),
         (State::PowerOn, Ok(Event::ButtonPressed(ButtonKind::Nikomi))) => State::Nikomi,
-        (State::PowerOn, Ok(Event::ProximityChanged(p))) => check_pan_off(p, State::PanShake),
+        (State::PowerOn, Ok(Event::ProximityChanged(_))) => State::PanShake,
+        (State::PowerOn, Ok(Event::ProximityPanOn)) => State::PowerOn,
+        (State::PowerOn, Ok(Event::ProximityPanOff)) => State::Standby,
         (State::PowerOn, _) => State::PowerOn,
 
         (State::PanShake, Ok(Event::ButtonPressed(ButtonKind::Power))) => State::PowerOff,
-        (State::PanShake, Ok(Event::ProximityChanged(p))) => check_pan_off(p, State::PowerOn),
+        (State::PanShake, Ok(Event::ProximityChanged(_))) => State::PanShake,
+        (State::PanShake, Ok(Event::ProximityPanOff)) => State::Standby,
         (State::PanShake, _) => State::PowerOn,
 
         (State::Nikomi, Ok(Event::ButtonPressed(ButtonKind::Power))) => State::PowerOff,
         (State::Nikomi, Ok(Event::ButtonPressed(ButtonKind::Weak))) => level_down(level),
         (State::Nikomi, Ok(Event::ButtonPressed(ButtonKind::Strong))) => level_up(level),
-        (State::Nikomi, Ok(Event::ProximityChanged(p))) => check_pan_off(p, State::PanShake),
+        (State::Nikomi, Ok(Event::ProximityPanOn)) => State::Nikomi,
+        (State::Nikomi, Ok(Event::ProximityPanOff)) => State::Standby,
         (State::Nikomi, _) => State::Nikomi,
 
         (State::LevelDown, _) => State::PowerOn,
@@ -124,21 +128,5 @@ fn level_down(level: &mut u8) -> State {
         State::LevelDown
     } else {
         State::PowerOn
-    }
-}
-
-fn check_pan_off(proximity: u16, stay_state: State) -> State {
-    if proximity > PAN_OFF_TH {
-        State::Standby
-    } else {
-        stay_state
-    }
-}
-
-fn check_pan_on(proximity: u16) -> State {
-    if proximity < PAN_ON_TH {
-        State::PowerOn
-    } else {
-        State::Standby
     }
 }
